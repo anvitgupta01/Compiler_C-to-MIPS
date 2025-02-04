@@ -30,3 +30,5 @@ Let's get started with implementing lexical analyzer using flex tool.
 
    ```
    .\a.exe test.c
+   ```
+Use the flex manual for learning about flex tool - https://westes.github.io/flex/manual/
