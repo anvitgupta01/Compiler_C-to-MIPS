@@ -1,6 +1,5 @@
 %{
 #include <bits/stdc++.h>
-#include "regex.l"
 using namespace std;
 
 // Flag for error
@@ -76,12 +75,13 @@ BINARY [0-1]
 OCTAL [0-7]
 DIGIT [0-9]
 
-KEYWORD if|else|auto|break|case|char|const|continue|default|do|double|else|enum|extern|float|for|goto|if|int|long|register|return|short|signed|sizeof|static|struct|switch|typedef|union|unsigned|void|volatile|while
+KEYWORD if|else|auto|break|case|char|const|continue|default|do|double|else|enum|extern|float|for|goto|if|int|long|register|return|short|signed|sizeof|static|struct|switch|typedef|union|unsigned|void|volatile|while|until
 
 SEMICOLON ";"
 COLON ":"
 DOT "."
 COMMA ","
+QUESTION_MARK "?"
 
 OPEN_NORM_BRACE "("
 CLOSE_NORM_BRACE ")"
@@ -92,7 +92,7 @@ CLOSE_SQ_BRACE "]"
 
 STRING_CHAR [^\"\\]|[\\.]|[ ]
 
-ID [a-zA-Z0-9_$]*
+ID [a-zA-Z0-9_]*
 
 UNARY_OPERATOR "++"|"--"
 RELATIONAL_OPERATOR "<"|">"|"<="|">="|"=="|"!="
@@ -134,6 +134,7 @@ BITWISE_OPERATOR "&"|"|"|"<<"|">>"|"~"|"^"
 {COLON} {file <<  line_number << endl; file << "COLON" << endl; file << yytext << endl;}
 {COMMA} {file <<  line_number << endl; file << "COMMA" << endl; file << yytext << endl;}
 {DOT} {file <<  line_number << endl; file << "DOT_OPERATOR" << endl; file << yytext << endl;}
+{QUESTION_MARK} {file << line_number << endl; file << "QUESTION_MARK" << endl; file << yytext << endl;}
 
 {ID}  {
     if (yytext[0]>='0' && yytext[0]<='9') {
@@ -187,6 +188,10 @@ BITWISE_OPERATOR "&"|"|"|"<<"|">>"|"~"|"^"
 \" {
     error = 1;
     cout << "Error: Unclosed string literal starting on line " << line_number << endl;
+}
+
+\'.\' {
+    file << line_number << endl; file << "CHARACTER_LITERAL" << endl; file << yytext << endl;
 }
 
 {UNARY_OPERATOR}  {file <<  line_number << endl; file << "UNARY_OPERATOR" << endl; file << yytext << endl;}
