@@ -39,28 +39,6 @@ int countNewLine(string comment) {
     return lineCount;
 }
 
-// Error handling for brackets
-vector<int> curly_lines;
-vector<int> sqaure_lines;
-vector<int> normal_lines;
-int curly_index = 0;
-int square_index = 0;
-int normal_index = 0;
-
-void handleUnclosedBrackets() {
-    if (curly_index || square_index || normal_index) error = 1;
-
-    for (int i=0;i<curly_index;i++) {
-        cout << "Error: Unmatched curly brackets '{' or '}' starting on line " << curly_lines[i] << endl;
-    }
-    for (int i=0;i<square_index;i++) {
-        cout << "Error: Unmatched square brackets '[' or ']' starting on line " << sqaure_lines[i] << endl;
-    }
-    for (int i=0;i<normal_index;i++) {
-        cout << "Error: Unmatched normal brackets '(' or ')' starting on line " << normal_lines[i] << endl;
-    }
-}
-
 %}
 
 SINGLE_LINE_COMMENTS "//"[ ]*[^\n]*
@@ -146,38 +124,26 @@ BITWISE_OPERATOR "&"|"|"|"<<"|">>"|"~"|"^"
 }
 
 {OPEN_NORM_BRACE} {
-    normal_lines.push_back(line_number);
-    normal_index++;
     file <<  line_number << endl; file << "OPEN_BRACKETS" << endl; file << yytext << endl;
 }
 
 {CLOSE_NORM_BRACE} {
-    normal_index--;
-    normal_lines.pop_back();
     file <<  line_number << endl; file << "CLOSING_BRACKETS" << endl; file << yytext << endl;
 }
 
 {OPEN_CURVE_BRACE} {
-    curly_lines.push_back(line_number);
-    curly_index++;
     file <<  line_number << endl; file << "OPEN_CURVE_BRACKETS" << endl; file << yytext << endl;
 }
 
 {CLOSE_CURVE_BRACE} {
-    curly_index--;
-    curly_lines.pop_back();
     file <<  line_number << endl; file << "CLOSING_CURVE_BRACKETS" << endl; file << yytext << endl;
 }
 
 {OPEN_SQ_BRACE} {
-    sqaure_lines.push_back(line_number);
-    square_index++;
     file <<  line_number << endl; file << "OPENING_SQAURE_BRACKETS" << endl; file << yytext << endl;
 }
 
 {CLOSE_SQ_BRACE} {
-    square_index--;
-    sqaure_lines.pop_back();
     file <<  line_number << endl; file << "CLOSING_SQUARE_BRACKETS" << endl; file << yytext << endl;
 }
 
@@ -190,8 +156,13 @@ BITWISE_OPERATOR "&"|"|"|"<<"|">>"|"~"|"^"
     cout << "Error: Unclosed string literal starting on line " << line_number << endl;
 }
 
-\'.\' {
+\'(.|\\.)\' {
     file << line_number << endl; file << "CHARACTER_LITERAL" << endl; file << yytext << endl;
+}
+
+\' {
+    error = 1;
+    cout << "Error: Unclosed character literal starting on line " << line_number << endl;
 }
 
 {UNARY_OPERATOR}  {file <<  line_number << endl; file << "UNARY_OPERATOR" << endl; file << yytext << endl;}
@@ -213,7 +184,6 @@ BITWISE_OPERATOR "&"|"|"|"<<"|">>"|"~"|"^"
 %%
 
 int yywrap(void) {
-    handleUnclosedBrackets();
     return 1;
 }
 
@@ -229,7 +199,7 @@ int main(int argc, char **argv) {
     file.open("example.txt");
     
     if (!file) {
-        cout << "Error opening file for writing\n";
+        cout << "Error opening file for writing.\n";
         return 1;
     }
 
