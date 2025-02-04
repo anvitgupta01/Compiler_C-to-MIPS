@@ -6,27 +6,44 @@ using namespace std;
 int error = 0;
 
 // Symbol Table output
+int width_of_column[3] = {14,32,42};
 int headerPrint = 0;
 int line_number = 1;
 
 ofstream file;
 
-void printRow(int line_no, string& token_type, string& lexeme) {
+void printBorder() {
+    cout << "+";
+    for (int i=0;i<width_of_column[0];i++) {
+        cout << "-";
+    }
+    cout << "+";
+    for (int i=0;i<width_of_column[1];i++) {
+        cout << "-";
+    }
+    cout << "+";
+    for (int i=0;i<width_of_column[2];i++) {
+        cout << "-";
+    }
+    cout << "+" << endl;
+}
+
+void printEntry(int line_no, string& token_type, string& lexeme) {
     if (!headerPrint) {
-        std::cout << "+-----------+----------------+------------------------------------------------------------+" << std::endl;
+        printBorder();
     
-        std::cout << "| " << std::left << std::setw(12) << "Line_Number" 
-              << " | " << std::left << std::setw(30) << "Token_Type" 
-              << " | " << std::left << std::setw(40) << "Lexeme" 
+        std::cout << "| " << std::left << std::setw(width_of_column[0]-2) << "Line_Number"
+              << " | " << std::left << std::setw(width_of_column[1]-2) << "Token_Type" 
+              << " | " << std::left << std::setw(width_of_column[2]-2) << "Lexeme" 
               << " |" << std::endl;
 
-        std::cout << "+-----------+----------------+------------------------------------------------------------+" << std::endl;
+        printBorder();
         headerPrint = 1;
     }
 
-     std::cout << "| " << std::left << std::setw(12) << line_no 
-              << " | " << std::left << std::setw(30) << token_type 
-              << " | " << std::left << std::setw(40) << lexeme 
+     std::cout << "| " << std::left << std::setw(width_of_column[0]-2) << line_no 
+              << " | " << std::left << std::setw(width_of_column[1]-2) << token_type 
+              << " | " << std::left << std::setw(width_of_column[2]-2) << lexeme 
               << " |" << std::endl;
 }
 
@@ -223,9 +240,11 @@ int main(int argc, char **argv) {
         while(getline(filein, line)) {
             getline(filein, line2);
             getline(filein, line3);
-            printRow(stoi(line), line2, line3);
+            printEntry(stoi(line), line2, line3);
         }
 
+        printBorder();
+        
         remove("example.txt");
     }
 
