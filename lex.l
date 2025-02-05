@@ -12,6 +12,7 @@ int line_number = 1;
 
 ofstream file;
 vector<string> output;
+vector<string> errors;
 
 void printBorder() {
     file << "+";
@@ -71,7 +72,7 @@ OPEN_SQ_BRACE "["
 CLOSE_SQ_BRACE "]"
 
 PREPROCESSOR_DIRECTIVES #define|#include|#ifdef|#ifndef|#if|#else|#elif|#endif|#undef|#pragma|#line|#error
-PREPROCESSOR_STATEMENTS {PREPROCESSOR_DIRECTIVES}[^\n]*
+PREPROCESSOR_STATEMENTS {PREPROCESSOR_DIRECTIVES}([a-zA-Z0-9!, <>.\\(\\)]|[\\{\\}]|[\\[\\]])*
 
 HEXA [0-9A-Fa-f]
 BINARY [0-1]
@@ -86,7 +87,7 @@ DOT "."
 COMMA ","
 QUESTION_MARK "?"
 
-STRING_CHAR [^\"\\]|[\\.]|[ ]
+STRING_CHAR (\\[0nrtavbf\\']|[^\\"])
 
 ID [a-zA-Z0-9_]*
 
@@ -97,6 +98,7 @@ ARITHMETIC_OPERATOR "+"|"-"|"*"|"/"|"%"
 LOGICAL_OPERATOR "&&"|"||"|"!"
 BITWISE_OPERATOR "&"|"|"|"<<"|">>"|"~"|"^"
 
+
 %%
 
 {SINGLE_LINE_COMMENTS}
@@ -104,8 +106,7 @@ BITWISE_OPERATOR "&"|"|"|"<<"|">>"|"~"|"^"
 {MULTI_LINE_COMMENTS} {int lines = countNewLine(yytext); to_string(line_number) += lines - 1; }
 
 {OPEN_MULTI_LINE_COMMENT} {
-    error = 1;
-    cout << "Error : Unclosed comment starting on line " << to_string(line_number) << endl;
+    errors.push_back("Error : Unclosed comment starting on line "+ to_string(line_number) + "\n");
 }
 
 {PREPROCESSOR_STATEMENTS} {output.push_back( to_string(line_number) ); output.push_back( "PREPROCESSOR_STATEMENT" ); output.push_back( yytext );}
@@ -134,8 +135,7 @@ BITWISE_OPERATOR "&"|"|"|"<<"|">>"|"~"|"^"
 
 {ID}  {
     if (yytext[0]>='0' && yytext[0]<='9') {
-        error = 1;
-        cout << "Invalid Identifier at line number " << to_string(line_number) <<endl;
+        errors.push_back("Invalid Identifier at line number " + to_string(line_number)+"\n");
     } else {
         output.push_back(  to_string(line_number) ); output.push_back( "IDENTIFIER" ); output.push_back( yytext );
     }
@@ -166,26 +166,23 @@ BITWISE_OPERATOR "&"|"|"|"<<"|">>"|"~"|"^"
 }
 
 \"{STRING_CHAR}*\"  {
-    if (!error) output.push_back(  to_string(line_number) ); output.push_back( "STRING_LITERAL" ); output.push_back( yytext );
+    output.push_back(  to_string(line_number) ); output.push_back( "STRING_LITERAL" ); output.push_back( yytext );
 }
 
 \" {
-    error = 1;
-    cout << "Error: Unclosed string literal starting on line " << to_string(line_number) << endl;
+    errors.push_back("Error: Unclosed string literal starting on line " + to_string(line_number)+"\n");
 }
 
-\'(.|\\.)\' {
+'(\\[0nrtavbf\\']|[^\\'])' {
     output.push_back( to_string(line_number) ); output.push_back( "CHARACTER_LITERAL" ); output.push_back( yytext );
 }
 
-\'(.|\\.)*\' {
-    error = 1;
-    cout << "Error: Character Literal can have only one character. Line " << to_string(line_number) << endl;
+'(\\[0nrtavbf\\']|[^\\'])*' {
+    errors.push_back("Error: Character Literal can have only one character. Line " + to_string(line_number) + "\n");
 }
 
 \' {
-    error = 1;
-    cout << "Error: Unclosed character literal starting on line " << to_string(line_number) << endl;
+    errors.push_back("Error: Unclosed character literal starting on line " + to_string(line_number)+"\n");
 }
 
 {UNARY_OPERATOR}  {output.push_back(  to_string(line_number) ); output.push_back( "UNARY_OPERATOR" ); output.push_back( yytext );}
@@ -200,8 +197,7 @@ BITWISE_OPERATOR "&"|"|"|"<<"|">>"|"~"|"^"
 \n {line_number++;}
 
 . {
-    error = 1;
-    cout << "Error : Unknown Character " << yytext << " present in line number " << to_string(line_number) << endl;
+    errors.push_back("Error : Unknown Character " + string(yytext) + " present in line number " + to_string(line_number) + "\n");
 }
 
 %%
@@ -210,22 +206,34 @@ int yywrap(void) {
     return 1;
 }
 
+void remove_last_char(const char *source, string &dest, string terminator) {
+    int length = strlen(source);
+    dest = (length > 0)? string(source, length - 2): "";
+    dest += terminator;
+}
+
 int main(int argc, char **argv) {
     ++argv, argc--;
+    char *fileName=argv[0];
+    cout<<fileName<<endl;
     if (argc > 0) {
-        yyin = fopen(argv[0],"r");
-    } else {
-        yyin = stdin;
-        cout << "Enter the code : \n\n";
+        yyin = fopen(fileName,"r");
     }
-
+    string newFileName;
     yylex();
-
-    if (error == 1) { 
-        cout << "\nError : Program Terminated due to above errors." << endl;
+    if (errors.size()) { 
+        remove_last_char(fileName,newFileName, "_errors.txt");
+        file.open(newFileName);
+        if (!file) {
+            cout << "Error opening file for writing.\n";
+            return 1;
+        }
+        errors.push_back("\nError : Program Terminated due to above errors.");
+        for(auto &error : errors) file<<error;
         return 1;
     } else {
-        file.open("tokenTable.txt");
+        remove_last_char(fileName,newFileName, "_output.txt");
+        file.open(newFileName);
         if (!file) {
             cout << "Error opening file for writing.\n";
             return 1;
