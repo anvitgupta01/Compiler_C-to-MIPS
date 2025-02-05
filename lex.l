@@ -11,28 +11,29 @@ int headerPrint = 0;
 int line_number = 1;
 
 ofstream file;
+vector<string> output;
 
 void printBorder() {
-    cout << "+";
+    file << "+";
     for (int i=0;i<width_of_column[0];i++) {
-        cout << "-";
+        file << "-";
     }
-    cout << "+";
+    file << "+";
     for (int i=0;i<width_of_column[1];i++) {
-        cout << "-";
+        file << "-";
     }
-    cout << "+";
+    file << "+";
     for (int i=0;i<width_of_column[2];i++) {
-        cout << "-";
+        file << "-";
     }
-    cout << "+" << endl;
+    file << "+" << endl;
 }
 
-void printEntry(int line_no, string& token_type, string& lexeme) {
+void printEntry(string& line_no, string& token_type, string& lexeme) {
     if (!headerPrint) {
         printBorder();
     
-        std::cout << "| " << std::left << std::setw(width_of_column[0]-2) << "Line_Number"
+        file << "| " << std::left << std::setw(width_of_column[0]-2) << "Line Number"
               << " | " << std::left << std::setw(width_of_column[1]-2) << "Token_Type" 
               << " | " << std::left << std::setw(width_of_column[2]-2) << "Lexeme" 
               << " |" << std::endl;
@@ -41,7 +42,7 @@ void printEntry(int line_no, string& token_type, string& lexeme) {
         headerPrint = 1;
     }
 
-     std::cout << "| " << std::left << std::setw(width_of_column[0]-2) << line_no 
+     file << "| " << std::left << std::setw(width_of_column[0]-2) << line_no 
               << " | " << std::left << std::setw(width_of_column[1]-2) << token_type 
               << " | " << std::left << std::setw(width_of_column[2]-2) << lexeme 
               << " |" << std::endl;
@@ -62,8 +63,15 @@ SINGLE_LINE_COMMENTS "//"[ ]*[^\n]*
 MULTI_LINE_COMMENTS  "/*"([^*]|\*+[^*/])*\*+"/"
 OPEN_MULTI_LINE_COMMENT "/*"
 
+OPEN_NORM_BRACE "("
+CLOSE_NORM_BRACE ")"
+OPEN_CURVE_BRACE "{"
+CLOSE_CURVE_BRACE "}"
+OPEN_SQ_BRACE "["
+CLOSE_SQ_BRACE "]"
+
 PREPROCESSOR_DIRECTIVES #define|#include|#ifdef|#ifndef|#if|#else|#elif|#endif|#undef|#pragma|#line|#error
-PREPROCESSOR_STATEMENTS {PREPROCESSOR_DIRECTIVES}[a-zA-Z <>.]*
+PREPROCESSOR_STATEMENTS {PREPROCESSOR_DIRECTIVES}[^\n]*
 
 HEXA [0-9A-Fa-f]
 BINARY [0-1]
@@ -77,13 +85,6 @@ COLON ":"
 DOT "."
 COMMA ","
 QUESTION_MARK "?"
-
-OPEN_NORM_BRACE "("
-CLOSE_NORM_BRACE ")"
-OPEN_CURVE_BRACE "{"
-CLOSE_CURVE_BRACE "}"
-OPEN_SQ_BRACE "["
-CLOSE_SQ_BRACE "]"
 
 STRING_CHAR [^\"\\]|[\\.]|[ ]
 
@@ -100,94 +101,99 @@ BITWISE_OPERATOR "&"|"|"|"<<"|">>"|"~"|"^"
 
 {SINGLE_LINE_COMMENTS}
 
-{MULTI_LINE_COMMENTS} {int lines = countNewLine(yytext); line_number += lines - 1; }
+{MULTI_LINE_COMMENTS} {int lines = countNewLine(yytext); to_string(line_number) += lines - 1; }
 
 {OPEN_MULTI_LINE_COMMENT} {
     error = 1;
-    cout << "Error : Unclosed comment starting on line " << line_number << endl;
+    cout << "Error : Unclosed comment starting on line " << to_string(line_number) << endl;
 }
 
-{PREPROCESSOR_STATEMENTS} {file <<  line_number << endl; file << "PREPROCESSOR_STATEMENT" << endl; file << yytext << endl;}
+{PREPROCESSOR_STATEMENTS} {output.push_back( to_string(line_number) ); output.push_back( "PREPROCESSOR_STATEMENT" ); output.push_back( yytext );}
 
-[0][b]{BINARY}+ {file <<  line_number << endl; file << "BINARY_LITERAL" << endl; file << yytext << endl;}
+[0][b]{BINARY}+ {output.push_back( to_string(line_number) ); output.push_back( "BINARY_LITERAL" ); output.push_back( yytext );}
 
-[0][x]{HEXA}+ {file <<  line_number << endl; file << "HEXADECIMAL_LITERAL" << endl; file << yytext << endl;}
+[0][x]{HEXA}+ {output.push_back(  to_string(line_number) ); output.push_back( "HEXADECIMAL_LITERAL" ); output.push_back( yytext );}
 
-[0]{OCTAL}+  {file <<  line_number << endl; file << "OCTAL_LITERAL" << endl; file << yytext << endl;}
+[0]{OCTAL}+  {output.push_back(  to_string(line_number) ); output.push_back( "OCTAL_LITERAL" ); output.push_back( yytext );}
 
-(({DIGIT}*"."{DIGIT}+)|({DIGIT}+"."{DIGIT}*))[eE]{DIGIT}+ {file <<  line_number << endl; file << "FLOAT_LITERAL" << endl; file << yytext << endl;}
+(({DIGIT}*"."{DIGIT}+)|({DIGIT}+"."{DIGIT}*))[eE]{DIGIT}+ {output.push_back(  to_string(line_number) ); output.push_back( "FLOAT_LITERAL" ); output.push_back( yytext );}
 
-{DIGIT}+[eE]{DIGIT}+ { file <<  line_number << endl; file << "INTEGER_LITERAL" << endl; file << yytext << endl;}
+{DIGIT}+[eE]{DIGIT}+ { output.push_back(  to_string(line_number) ); output.push_back( "INTEGER_LITERAL" ); output.push_back( yytext );}
 
-({DIGIT}*"."{DIGIT}+)|({DIGIT}+"."{DIGIT}*)  {file <<  line_number << endl; file << "FLOAT_LITERAL" << endl; file << yytext << endl;}
+({DIGIT}*"."{DIGIT}+)|({DIGIT}+"."{DIGIT}*)  {output.push_back(  to_string(line_number) ); output.push_back( "FLOAT_LITERAL" ); output.push_back( yytext );}
 
-{DIGIT}+   { file <<  line_number << endl; file << "INTEGER_LITERAL" << endl; file << yytext << endl;}
+{DIGIT}+   { output.push_back(  to_string(line_number) ); output.push_back( "INTEGER_LITERAL" ); output.push_back( yytext );}
 
-{KEYWORD}  { file <<  line_number << endl; file << "KEYWORD" << endl; file << yytext << endl;}
+{KEYWORD}  { output.push_back(  to_string(line_number) ); output.push_back( "KEYWORD" ); output.push_back( yytext );}
 
-{SEMICOLON} {file <<  line_number << endl; file << "SEMICOLON" << endl; file << yytext << endl;}
-{COLON} {file <<  line_number << endl; file << "COLON" << endl; file << yytext << endl;}
-{COMMA} {file <<  line_number << endl; file << "COMMA" << endl; file << yytext << endl;}
-{DOT} {file <<  line_number << endl; file << "DOT_OPERATOR" << endl; file << yytext << endl;}
-{QUESTION_MARK} {file << line_number << endl; file << "QUESTION_MARK" << endl; file << yytext << endl;}
+{SEMICOLON} {output.push_back(  to_string(line_number) ); output.push_back( "SEMICOLON" ); output.push_back( yytext );}
+{COLON} {output.push_back(  to_string(line_number) ); output.push_back( "COLON" ); output.push_back( yytext );}
+{COMMA} {output.push_back(  to_string(line_number) ); output.push_back( "COMMA" ); output.push_back( yytext );}
+{DOT} {output.push_back(  to_string(line_number) ); output.push_back( "DOT_OPERATOR" ); output.push_back( yytext );}
+{QUESTION_MARK} {output.push_back( to_string(line_number) ); output.push_back( "QUESTION_MARK" ); output.push_back( yytext );}
 
 {ID}  {
     if (yytext[0]>='0' && yytext[0]<='9') {
         error = 1;
-        cout << "Invalid Identifier at line number " << line_number << endl;
+        cout << "Invalid Identifier at line number " << to_string(line_number) <<endl;
     } else {
-        file <<  line_number << endl; file << "IDENTIFIER" << endl; file << yytext << endl;
+        output.push_back(  to_string(line_number) ); output.push_back( "IDENTIFIER" ); output.push_back( yytext );
     }
 }
 
 {OPEN_NORM_BRACE} {
-    file <<  line_number << endl; file << "OPEN_BRACKETS" << endl; file << yytext << endl;
+    output.push_back(  to_string(line_number) ); output.push_back( "OPEN_BRACKETS" ); output.push_back( yytext );
 }
 
 {CLOSE_NORM_BRACE} {
-    file <<  line_number << endl; file << "CLOSING_BRACKETS" << endl; file << yytext << endl;
+    output.push_back(  to_string(line_number) ); output.push_back( "CLOSING_BRACKETS" ); output.push_back( yytext );
 }
 
 {OPEN_CURVE_BRACE} {
-    file <<  line_number << endl; file << "OPEN_CURVE_BRACKETS" << endl; file << yytext << endl;
+    output.push_back(  to_string(line_number) ); output.push_back( "OPEN_CURVE_BRACKETS" ); output.push_back( yytext );
 }
 
 {CLOSE_CURVE_BRACE} {
-    file <<  line_number << endl; file << "CLOSING_CURVE_BRACKETS" << endl; file << yytext << endl;
+    output.push_back(  to_string(line_number) ); output.push_back( "CLOSING_CURVE_BRACKETS" ); output.push_back( yytext );
 }
 
 {OPEN_SQ_BRACE} {
-    file <<  line_number << endl; file << "OPENING_SQAURE_BRACKETS" << endl; file << yytext << endl;
+    output.push_back(  to_string(line_number) ); output.push_back( "OPENING_SQAURE_BRACKETS" ); output.push_back( yytext );
 }
 
 {CLOSE_SQ_BRACE} {
-    file <<  line_number << endl; file << "CLOSING_SQUARE_BRACKETS" << endl; file << yytext << endl;
+    output.push_back(  to_string(line_number) ); output.push_back( "CLOSING_SQUARE_BRACKETS" ); output.push_back( yytext );
 }
 
 \"{STRING_CHAR}*\"  {
-    file <<  line_number << endl; file << "STRING_LITERAL" << endl; file << yytext << endl;
+    if (!error) output.push_back(  to_string(line_number) ); output.push_back( "STRING_LITERAL" ); output.push_back( yytext );
 }
 
 \" {
     error = 1;
-    cout << "Error: Unclosed string literal starting on line " << line_number << endl;
+    cout << "Error: Unclosed string literal starting on line " << to_string(line_number) << endl;
 }
 
 \'(.|\\.)\' {
-    file << line_number << endl; file << "CHARACTER_LITERAL" << endl; file << yytext << endl;
+    output.push_back( to_string(line_number) ); output.push_back( "CHARACTER_LITERAL" ); output.push_back( yytext );
+}
+
+\'(.|\\.)*\' {
+    error = 1;
+    cout << "Error: Character Literal can have only one character. Line " << to_string(line_number) << endl;
 }
 
 \' {
     error = 1;
-    cout << "Error: Unclosed character literal starting on line " << line_number << endl;
+    cout << "Error: Unclosed character literal starting on line " << to_string(line_number) << endl;
 }
 
-{UNARY_OPERATOR}  {file <<  line_number << endl; file << "UNARY_OPERATOR" << endl; file << yytext << endl;}
-{RELATIONAL_OPERATOR}  {file <<  line_number << endl; file << "RELATIONAL_OPERATOR" << endl; file << yytext << endl;}
-{ASSIGNMENT_OPERATOR}  { file <<  line_number << endl; file << "ASSIGNMENT_OPERATOR" << endl; file << yytext << endl;}
-{ARITHMETIC_OPERATOR}  {file <<  line_number << endl; file << "ARITHMETIC_OPERATOR" << endl; file << yytext << endl;}
-{LOGICAL_OPERATOR}  {file <<  line_number << endl; file << "LOGICAL_OPERATOR" << endl; file << yytext << endl;}
-{BITWISE_OPERATOR}  {file <<  line_number << endl; file << "BITWISE_OPERATOR" << endl; file << yytext << endl;}
+{UNARY_OPERATOR}  {output.push_back(  to_string(line_number) ); output.push_back( "UNARY_OPERATOR" ); output.push_back( yytext );}
+{RELATIONAL_OPERATOR}  {output.push_back(  to_string(line_number) ); output.push_back( "RELATIONAL_OPERATOR" ); output.push_back( yytext );}
+{ASSIGNMENT_OPERATOR}  { output.push_back(  to_string(line_number) ); output.push_back( "ASSIGNMENT_OPERATOR" ); output.push_back( yytext );}
+{ARITHMETIC_OPERATOR}  {output.push_back(  to_string(line_number) ); output.push_back( "ARITHMETIC_OPERATOR" ); output.push_back( yytext );}
+{LOGICAL_OPERATOR}  {output.push_back(  to_string(line_number) ); output.push_back( "LOGICAL_OPERATOR" ); output.push_back( yytext );}
+{BITWISE_OPERATOR}  {output.push_back(  to_string(line_number) ); output.push_back( "BITWISE_OPERATOR" ); output.push_back( yytext );}
 
 [ \t\r\f]+   /* eat up whitespaces, tabs or new line */
 
@@ -195,7 +201,7 @@ BITWISE_OPERATOR "&"|"|"|"<<"|">>"|"~"|"^"
 
 . {
     error = 1;
-    cout << "Error : Unknown Character " << yytext << " present in line number " << line_number << endl;
+    cout << "Error : Unknown Character " << yytext << " present in line number " << to_string(line_number) << endl;
 }
 
 %%
@@ -212,40 +218,23 @@ int main(int argc, char **argv) {
         yyin = stdin;
         cout << "Enter the code : \n\n";
     }
-    
-    file.open("example.txt");
-    
-    if (!file) {
-        cout << "Error opening file for writing.\n";
-        return 1;
-    }
 
     yylex();
-
-    file.close();
 
     if (error == 1) { 
         cout << "\nError : Program Terminated due to above errors." << endl;
         return 1;
     } else {
-        ifstream filein;
-        filein.open("example.txt");
-
-        if (!filein) {
-            cout << "Error opening file for reading." << endl;
+        file.open("tokenTable.txt");
+        if (!file) {
+            cout << "Error opening file for writing.\n";
+            return 1;
         }
-
-        string line, line2, line3;
-        
-        while(getline(filein, line)) {
-            getline(filein, line2);
-            getline(filein, line3);
-            printEntry(stoi(line), line2, line3);
+        for(int i=0;i<output.size();i+=3){
+            printEntry(output[i], output[i+1], output[i+2]);
         }
-
         printBorder();
-        
-        remove("example.txt");
+        file.close();
     }
 
     return 0;
