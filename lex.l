@@ -6,7 +6,7 @@ using namespace std;
 int error = 0;
 
 // Symbol Table output
-int width_of_column[3] = {14,32,42};
+int width_of_column[3] = {14,32,66};
 int headerPrint = 0;
 int line_number = 1;
 
@@ -58,6 +58,10 @@ int countNewLine(string comment) {
     return lineCount;
 }
 
+void handleExceddingLengthofTokens() {
+    
+}
+
 %}
 
 SINGLE_LINE_COMMENTS "//"[ ]*[^\n]*
@@ -87,7 +91,7 @@ DOT "."
 COMMA ","
 QUESTION_MARK "?"
 
-STRING_CHAR (\\[0nrtavbf\\']|[^\\"])
+STRING_CHAR (\\[0nrtavbf\\'"]|[^\\"])
 
 ID [a-zA-Z0-9_]*
 
@@ -109,21 +113,84 @@ BITWISE_OPERATOR "&"|"|"|"<<"|">>"|"~"|"^"
     errors.push_back("Error : Unclosed comment starting on line "+ to_string(line_number) + "\n");
 }
 
-{PREPROCESSOR_STATEMENTS} {output.push_back( to_string(line_number) ); output.push_back( "PREPROCESSOR_STATEMENT" ); output.push_back( yytext );}
+{PREPROCESSOR_STATEMENTS} {
+    if (yyleng > 63) {
+        errors.push_back("Error: Excedding length of token at line number " + to_string(line_number) + "\n");
+    } else {
+        output.push_back( to_string(line_number) ); 
+        output.push_back( "PREPROCESSOR_STATEMENT" ); 
+        output.push_back( yytext );
+    }
+}
 
-[0][b]{BINARY}+ {output.push_back( to_string(line_number) ); output.push_back( "BINARY_LITERAL" ); output.push_back( yytext );}
+[0][b]{BINARY}+ {
+    if (yyleng > 63) {
+        errors.push_back("Error: Excedding length of token at line number " + to_string(line_number) + "\n");
+    } else {
+        output.push_back( to_string(line_number) ); 
+        output.push_back( "BINARY_LITERAL" ); 
+        output.push_back( yytext );
+    }
+}
 
-[0][x]{HEXA}+ {output.push_back(  to_string(line_number) ); output.push_back( "HEXADECIMAL_LITERAL" ); output.push_back( yytext );}
+[0][x]{HEXA}+ {
+    if (yyleng > 63) {
+        errors.push_back("Error: Excedding length of token at line number " + to_string(line_number) + "\n");
+    } else {
+        output.push_back( to_string(line_number) ); 
+        output.push_back( "HEXADECIMAL_LITERAL" ); 
+        output.push_back( yytext );
+    }
+}
+[0]{OCTAL}+  {
+    if (yyleng > 63) {
+        errors.push_back("Error: Excedding length of token at line number " + to_string(line_number) + "\n");
+    } else {
+        output.push_back( to_string(line_number) ); 
+        output.push_back( "OCTAL_LITERAL" ); 
+        output.push_back( yytext );
+    }
+}
 
-[0]{OCTAL}+  {output.push_back(  to_string(line_number) ); output.push_back( "OCTAL_LITERAL" ); output.push_back( yytext );}
+(({DIGIT}*"."{DIGIT}+)|({DIGIT}+"."{DIGIT}*))[eE]{DIGIT}+ {
+    if (yyleng > 63) {
+        errors.push_back("Error: Excedding length of token at line number " + to_string(line_number) + "\n");
+    } else {
+        output.push_back( to_string(line_number) ); 
+        output.push_back( "FLOAT_LITERAL" ); 
+        output.push_back( yytext );
+    }
+}
 
-(({DIGIT}*"."{DIGIT}+)|({DIGIT}+"."{DIGIT}*))[eE]{DIGIT}+ {output.push_back(  to_string(line_number) ); output.push_back( "FLOAT_LITERAL" ); output.push_back( yytext );}
+{DIGIT}+[eE]{DIGIT}+ { 
+    if (yyleng > 63) {
+        errors.push_back("Error: Excedding length of token at line number " + to_string(line_number) + "\n");
+    } else {
+        output.push_back( to_string(line_number) ); 
+        output.push_back( "INTEGER_LITERAL" ); 
+        output.push_back( yytext );
+    }
+}
 
-{DIGIT}+[eE]{DIGIT}+ { output.push_back(  to_string(line_number) ); output.push_back( "INTEGER_LITERAL" ); output.push_back( yytext );}
+({DIGIT}*"."{DIGIT}+)|({DIGIT}+"."{DIGIT}*)  {
+    if (yyleng > 63) {
+        errors.push_back("Error: Excedding length of token at line number " + to_string(line_number) + "\n");
+    } else {
+        output.push_back( to_string(line_number) ); 
+        output.push_back( "FLOAT_LITERAL" ); 
+        output.push_back( yytext );
+    }
+}
 
-({DIGIT}*"."{DIGIT}+)|({DIGIT}+"."{DIGIT}*)  {output.push_back(  to_string(line_number) ); output.push_back( "FLOAT_LITERAL" ); output.push_back( yytext );}
-
-{DIGIT}+   { output.push_back(  to_string(line_number) ); output.push_back( "INTEGER_LITERAL" ); output.push_back( yytext );}
+{DIGIT}+   { 
+    if (yyleng > 63) {
+        errors.push_back("Error: Excedding length of token at line number " + to_string(line_number) + "\n");
+    } else {
+        output.push_back( to_string(line_number) ); 
+        output.push_back( "INTEGER_LITERAL" ); 
+        output.push_back( yytext );
+    }
+}
 
 {KEYWORD}  { output.push_back(  to_string(line_number) ); output.push_back( "KEYWORD" ); output.push_back( yytext );}
 
@@ -135,9 +202,13 @@ BITWISE_OPERATOR "&"|"|"|"<<"|">>"|"~"|"^"
 
 {ID}  {
     if (yytext[0]>='0' && yytext[0]<='9') {
-        errors.push_back("Invalid Identifier at line number " + to_string(line_number)+"\n");
+        errors.push_back("Error: Invalid Identifier at line number " + to_string(line_number)+"\n");
+    } else if (yyleng > 63) {
+        errors.push_back("Error: Excedding length of token at line number " + to_string(line_number) + "\n");
     } else {
-        output.push_back(  to_string(line_number) ); output.push_back( "IDENTIFIER" ); output.push_back( yytext );
+        output.push_back( to_string(line_number) ); 
+        output.push_back( "BINARY_LITERAL" ); 
+        output.push_back( yytext );
     }
 }
 
@@ -166,18 +237,24 @@ BITWISE_OPERATOR "&"|"|"|"<<"|">>"|"~"|"^"
 }
 
 \"{STRING_CHAR}*\"  {
-    output.push_back(  to_string(line_number) ); output.push_back( "STRING_LITERAL" ); output.push_back( yytext );
+    if (yyleng > 63) {
+        errors.push_back("Error: Excedding length of token at line number " + to_string(line_number) + "\n");
+    } else {
+        output.push_back( to_string(line_number) ); 
+        output.push_back( "STRING_LITERAL" ); 
+        output.push_back( yytext );
+    }
 }
 
 \" {
     errors.push_back("Error: Unclosed string literal starting on line " + to_string(line_number)+"\n");
 }
 
-'(\\[0nrtavbf\\']|[^\\'])' {
+'(\\[0nrtavbf\\'"]|[^\\'])' {
     output.push_back( to_string(line_number) ); output.push_back( "CHARACTER_LITERAL" ); output.push_back( yytext );
 }
 
-'(\\[0nrtavbf\\']|[^\\'])*' {
+'(\\[0nrtavbf\\'"]|[^\\'])*' {
     errors.push_back("Error: Character Literal can have only one character. Line " + to_string(line_number) + "\n");
 }
 
@@ -203,6 +280,7 @@ BITWISE_OPERATOR "&"|"|"|"<<"|">>"|"~"|"^"
 %%
 
 int yywrap(void) {
+    handleExceddingLengthofTokens();
     return 1;
 }
 
