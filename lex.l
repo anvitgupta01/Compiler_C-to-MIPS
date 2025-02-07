@@ -58,10 +58,6 @@ int countNewLine(string comment) {
     return lineCount;
 }
 
-void handleExceddingLengthofTokens() {
-    
-}
-
 %}
 
 SINGLE_LINE_COMMENTS "//"[ ]*[^\n]*
@@ -280,7 +276,6 @@ BITWISE_OPERATOR "&"|"|"|"<<"|">>"|"~"|"^"
 %%
 
 int yywrap(void) {
-    handleExceddingLengthofTokens();
     return 1;
 }
 
