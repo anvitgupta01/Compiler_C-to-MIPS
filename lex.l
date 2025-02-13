@@ -203,7 +203,7 @@ BITWISE_OPERATOR "&"|"|"|"<<"|">>"|"~"|"^"
         errors.push_back("Error: Excedding length of token at line number " + to_string(line_number) + "\n");
     } else {
         output.push_back( to_string(line_number) ); 
-        output.push_back( "BINARY_LITERAL" ); 
+        output.push_back( "IDENTIFIER" ); 
         output.push_back( yytext );
     }
 }
